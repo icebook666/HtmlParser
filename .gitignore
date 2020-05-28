@@ -1,0 +1,6 @@
+/config.properties
+/test/
+/utils/
+*.classpath
+*.project
+*.settings*
