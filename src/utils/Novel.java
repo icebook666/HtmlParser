@@ -2,7 +2,6 @@ package utils;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
@@ -46,16 +45,39 @@ public class Novel extends Thread {
 				Elements urlOrigins = SpiderUtils.getURLList(myConfig.getUrl());
 				int i = 1;
 				String href = "";
+				
+				int maxRetry = 30; //重試次數
+				int sleepTime = 1000; //等待ms
 
 				for (Iterator iter = urlOrigins.iterator(); iter.hasNext(); ++i) {
 					Element element = (Element) iter.next();
 					href = element.select("a").attr("href");
 					System.out.println(getName() + ": Read " + i + " page -> " + myConfig.getUrl() + href);
-					myPage = SpiderUtils.getText(myConfig.getUrl() + href);
-					writer.write(myPage.getTitle() + "\r\n\r\n");
-					writer.write(myPage.getContent());
-					writer.write("\r\n\r\n");
-					writer.flush();
+					
+					for (int j = 0; j < maxRetry; j++) {
+						try {
+			                if (j != 0) {
+			                	System.out.println(getName() + ": Read " + i + " page -> " + myConfig.getUrl() + href + "(Retry "+j+")");
+			                	Thread.sleep(sleepTime);
+			                }
+			                myPage = SpiderUtils.getText(myConfig.getUrl() + href);
+			                
+			                writer.write(myPage.getTitle() + "\r\n\r\n");
+							writer.write(myPage.getContent());
+							writer.write("\r\n\r\n");
+							writer.flush();
+			                // normal finish situation,loop is broken.
+			                break;
+
+			            } catch (Exception e) {
+			                // throw new Exception(ex); dead code is occurred
+			            	if (j >= (maxRetry - 1))
+			            	{
+			            		//Output to info log.
+			            		e.printStackTrace();
+			            	}
+			            }
+					} //Retry Loop
 				}
 				writer.close();
 				System.out.println("============== "+ getName() +" Finish ==============");
@@ -65,7 +87,7 @@ public class Novel extends Thread {
 				System.out.println("============== "+ getName() +" <No URL> Finish ==============");
 			}
 			
-		} catch (IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
 			
